@@ -13,6 +13,9 @@ dependencies = [
 [project.scripts]
 tokcodecut = "tokcodecut.cli:main"
 
+[dependency-groups]
+dev = ["pytest>=8"]
+
 [tool.hatch.build.targets.wheel]
 packages = ["tokcodecut"]
 

@@ -1,3 +1,5 @@
+from pathlib import Path
+
 PY_EXTENSIONS = frozenset({".py"})
 TS_EXTENSIONS = frozenset({".ts", ".tsx", ".js", ".jsx", ".svelte"})
 ALL_SUPPORTED = PY_EXTENSIONS | TS_EXTENSIONS
@@ -12,10 +14,9 @@ def err_symbol_not_found(name: str, path: str) -> str:
 
 
 def err_unsupported(path: str) -> str:
-    from pathlib import Path
     ext = Path(path).suffix
     supported = " ".join(sorted(ALL_SUPPORTED))
-    return f"Unsupported: {ext}. Supported: {supported}"
+    return f"Unsupported extension '{ext}' in {path}. Supported: {supported}"
 
 
 def err_parse(path: str, message: str) -> str:
