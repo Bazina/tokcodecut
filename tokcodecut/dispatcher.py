@@ -49,7 +49,7 @@ def find_references(symbol: str, root_dir: str) -> str:
     for root, dirs, files in os.walk(root_dir):
         dirs[:] = [
             d for d in dirs
-            if not d.startswith(".") and d != "node_modules" and d != "__pycache__"
+            if not d.startswith(".") and d != "node_modules" and d != "__pycache__" and d != "tests" and d != "notebooks"
         ]
         for fname in files:
             filepath = os.path.join(root, fname)

@@ -1,5 +1,12 @@
 import argparse
-from . import dispatcher
+import sys
+from pathlib import Path
+
+if __package__:
+    from . import dispatcher
+else:
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+    from tokcodecut import dispatcher
 
 
 def main() -> None:
@@ -39,3 +46,7 @@ def main() -> None:
         print(dispatcher.imports(args.path))
     elif args.command == "refs":
         print(dispatcher.find_references(args.symbol, args.root_dir))
+
+
+if __name__ == "__main__":
+    main()
