@@ -84,3 +84,45 @@ class TestSkeleton:
     def test_file_not_found(self):
         result = python_parser.skeleton("/no/such/file.py")
         assert result == "File not found: /no/such/file.py"
+
+
+class TestSymbolBody:
+    def test_returns_class_source(self, sample_file):
+        result = python_parser.symbol_body(sample_file, "MyClass")
+        assert "class MyClass" in result
+        assert "self.client = client" in result
+
+    def test_returns_function_source(self, sample_file):
+        result = python_parser.symbol_body(sample_file, "fetch_records")
+        assert "def fetch_records" in result
+        assert "return []" in result
+
+    def test_symbol_not_found(self, sample_file):
+        result = python_parser.symbol_body(sample_file, "nonexistent_fn")
+        assert "nonexistent_fn" in result
+        assert "not found" in result
+
+    def test_file_not_found(self):
+        result = python_parser.symbol_body("/no/file.py", "foo")
+        assert result == "File not found: /no/file.py"
+
+
+class TestImports:
+    def test_returns_imports(self, sample_file):
+        result = python_parser.imports(sample_file)
+        assert "import os" in result
+        assert "from pathlib import Path" in result
+
+    def test_no_class_in_imports(self, sample_file):
+        result = python_parser.imports(sample_file)
+        assert "class MyClass" not in result
+
+    def test_file_not_found(self):
+        result = python_parser.imports("/no/file.py")
+        assert result == "File not found: /no/file.py"
+
+    def test_no_imports(self, tmp_path):
+        f = tmp_path / "noimports.py"
+        f.write_text("x = 1\n")
+        result = python_parser.imports(str(f))
+        assert result == "(no imports)"

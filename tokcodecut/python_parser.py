@@ -1,6 +1,6 @@
 import ast
 from pathlib import Path
-from .models import err_not_found, err_parse
+from .models import err_not_found, err_parse, err_symbol_not_found
 
 
 def _read(path: str) -> str | None:
@@ -90,3 +90,39 @@ def skeleton(path: str) -> str:
                         parts.append(f'        """{child_doc}"""')
             parts.append("")
     return "\n".join(parts) if parts else "(no symbols found)"
+
+
+def symbol_body(path: str, name: str) -> str:
+    """Returns full source of one named symbol."""
+    source = _read(path)
+    if source is None:
+        return err_not_found(path)
+    result = _parse(source, path)
+    if isinstance(result, str):
+        return result
+    tree: ast.Module = result
+
+    source_lines = source.splitlines()
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            if node.name == name:
+                return "\n".join(source_lines[node.lineno - 1 : node.end_lineno])
+    return err_symbol_not_found(name, path)
+
+
+def imports(path: str) -> str:
+    """Returns import/from-import block only."""
+    source = _read(path)
+    if source is None:
+        return err_not_found(path)
+    result = _parse(source, path)
+    if isinstance(result, str):
+        return result
+    tree: ast.Module = result
+
+    source_lines = source.splitlines()
+    lines: list[str] = []
+    for node in tree.body:
+        if isinstance(node, (ast.Import, ast.ImportFrom)):
+            lines.extend(source_lines[node.lineno - 1 : node.end_lineno])
+    return "\n".join(lines) if lines else "(no imports)"
