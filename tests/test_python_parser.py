@@ -50,6 +50,12 @@ class TestStructure:
         result = python_parser.structure(sample_file)
         assert "import" not in result
 
+    def test_syntax_error(self, tmp_path):
+        bad = tmp_path / "bad.py"
+        bad.write_text("def (broken:\n")
+        result = python_parser.structure(str(bad))
+        assert result.startswith("Parse error in")
+
 
 class TestSkeleton:
     def test_class_signature(self, sample_file):
@@ -73,7 +79,7 @@ class TestSkeleton:
 
     def test_function_signature(self, sample_file):
         result = python_parser.skeleton(sample_file)
-        assert "def fetch_records" in result
+        assert "def fetch_records(app_id: str) -> list: ..." in result
 
     def test_file_not_found(self):
         result = python_parser.skeleton("/no/such/file.py")

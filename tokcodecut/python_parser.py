@@ -6,7 +6,7 @@ from .models import err_not_found, err_parse
 def _read(path: str) -> str | None:
     try:
         return Path(path).read_text(encoding="utf-8")
-    except FileNotFoundError:
+    except OSError:
         return None
 
 
@@ -89,4 +89,4 @@ def skeleton(path: str) -> str:
                     if child_doc:
                         parts.append(f'        """{child_doc}"""')
             parts.append("")
-    return "\n".join(parts)
+    return "\n".join(parts) if parts else "(no symbols found)"
