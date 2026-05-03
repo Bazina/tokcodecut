@@ -10,7 +10,7 @@ if (!operation || !filePath) {
 }
 
 function extractScript(content) {
-  const match = content.match(/<script(?:\s[^>]*)?>(\s[\s\S]*?)<\/script>/);
+  const match = content.match(/<script(?:\s[^>]*)?>(\s*[\s\S]*?)<\/script>/ms);
   return match ? match[1] : "";
 }
 
