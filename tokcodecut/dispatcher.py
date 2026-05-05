@@ -1,16 +1,20 @@
 import os
 import re
 from pathlib import Path
-from .models import PY_EXTENSIONS, TS_EXTENSIONS, err_unsupported
-from . import python_parser, ts_parser
+from .models import PY_EXTENSIONS, TS_EXTENSIONS, CONFIG_EXTENSIONS, DOCKERFILE_NAMES, err_unsupported
+from . import python_parser, ts_parser, config_parser
 
 
 def _route(path: str):
-    ext = Path(path).suffix.lower()
+    p = Path(path)
+    ext = p.suffix.lower()
+    name = p.name.lower()
     if ext in PY_EXTENSIONS:
         return python_parser
     if ext in TS_EXTENSIONS:
         return ts_parser
+    if ext in CONFIG_EXTENSIONS or name in DOCKERFILE_NAMES or name.startswith("dockerfile."):
+        return config_parser
     return None
 
 
