@@ -66,3 +66,79 @@ def find_references(symbol: str, root_dir: str) -> str:
                 pass
 
     return "\n".join(results) if results else "(no references found)"
+
+
+def _open_workspace_files(client: object, root_dir: str, extensions: frozenset[str], lang: str) -> None:
+    """Open all matching files in workspace so LSP can index them."""
+    skip_dirs = {"node_modules", "__pycache__", ".git", ".venv", "venv", "dist", "build"}
+    for root, dirs, files in os.walk(root_dir):
+        dirs[:] = [d for d in dirs if d not in skip_dirs and not d.startswith(".")]
+        for fname in files:
+            if Path(fname).suffix.lower() in extensions:
+                client.open_file(os.path.join(root, fname), lang)  # type: ignore[attr-defined]
+
+
+def lsp_references(symbol: str, path: str, root_dir: str) -> str:
+    """Semantic references via LSP. Falls back to regex if LSP unavailable."""
+    from .lsp.bridge import find_symbol_line, lang_id, lang_key
+    from .lsp.manager import get_server
+    from .lsp.client import uri_to_path
+
+    pos = find_symbol_line(path, symbol)
+    if pos is None:
+        return find_references(symbol, root_dir)
+
+    lk = lang_key(path)
+    client = get_server(lk, root_dir)
+    if client is None:
+        return find_references(symbol, root_dir)
+
+    exts = PY_EXTENSIONS if lk == "python" else TS_EXTENSIONS
+    _open_workspace_files(client, root_dir, exts, lang_id(path))
+    refs = client.references(path, pos[0], pos[1])
+
+    if not refs:
+        return find_references(symbol, root_dir)
+
+    results: list[str] = []
+    for ref in refs:
+        try:
+            ref_path = uri_to_path(ref["uri"])
+            line = ref["range"]["start"]["line"] + 1
+            results.append(f"{ref_path}:{line}")
+        except Exception:
+            pass
+
+    return "\n".join(results) if results else find_references(symbol, root_dir)
+
+
+def lsp_hover(path: str, symbol: str, root_dir: str | None = None) -> str:
+    """Type signature and docs for a symbol via LSP."""
+    from .lsp.bridge import find_symbol_line, lang_id, lang_key
+    from .lsp.manager import get_server
+
+    pos = find_symbol_line(path, symbol)
+    if pos is None:
+        return f"Symbol '{symbol}' not found in {path}"
+
+    effective_root = root_dir or str(Path(path).parent)
+    client = get_server(lang_key(path), effective_root)
+    if client is None:
+        lsp_name = "pylsp" if lang_key(path) == "python" else "typescript-language-server"
+        return f"LSP unavailable. Install: {lsp_name}"
+
+    client.open_file(path, lang_id(path))
+    result = client.hover(path, pos[0], pos[1])
+
+    if not result:
+        return f"No hover info for '{symbol}'"
+
+    contents = result.get("contents", "")
+    if isinstance(contents, dict):
+        return contents.get("value", str(contents))
+    if isinstance(contents, list):
+        parts = []
+        for c in contents:
+            parts.append(c.get("value", c) if isinstance(c, dict) else str(c))
+        return "\n".join(parts)
+    return str(contents)
