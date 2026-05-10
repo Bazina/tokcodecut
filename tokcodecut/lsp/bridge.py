@@ -4,8 +4,8 @@ from pathlib import Path
 
 def find_symbol_line(path: str, symbol: str) -> tuple[int, int] | None:
     """Returns (line, col) 0-indexed for symbol definition in file."""
-    ext = Path(path).suffix.lower()
-    if ext == ".py":
+    file_extension = Path(path).suffix.lower()
+    if file_extension == ".py":
         return _python_symbol_line(path, symbol)
     return None
 
@@ -29,8 +29,9 @@ def _python_symbol_line(path: str, symbol: str) -> tuple[int, int] | None:
     return None
 
 
-def lang_id(path: str) -> str:
-    ext = Path(path).suffix.lower()
+def lsp_language_id(path: str) -> str:
+    """Maps file path to LSP languageId string for textDocument/didOpen."""
+    file_extension = Path(path).suffix.lower()
     mapping = {
         ".py": "python",
         ".ts": "typescript",
@@ -38,13 +39,14 @@ def lang_id(path: str) -> str:
         ".js": "javascript",
         ".jsx": "javascriptreact",
     }
-    return mapping.get(ext, "plaintext")
+    return mapping.get(file_extension, "plaintext")
 
 
-def lang_key(path: str) -> str:
-    ext = Path(path).suffix.lower()
-    if ext == ".py":
+def lsp_language_key(path: str) -> str:
+    """Maps file path to language server process key (python or typescript)."""
+    file_extension = Path(path).suffix.lower()
+    if file_extension == ".py":
         return "python"
-    if ext in {".ts", ".tsx", ".js", ".jsx"}:
+    if file_extension in {".ts", ".tsx", ".js", ".jsx"}:
         return "typescript"
     return "unknown"

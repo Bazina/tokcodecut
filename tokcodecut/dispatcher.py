@@ -68,19 +68,19 @@ def find_references(symbol: str, root_dir: str) -> str:
     return "\n".join(results) if results else "(no references found)"
 
 
-def _open_workspace_files(client: object, root_dir: str, extensions: frozenset[str], lang: str) -> None:
+def _open_workspace_files(client: object, root_dir: str, extensions: frozenset[str], language_id: str) -> None:
     """Open all matching files in workspace so LSP can index them."""
     skip_dirs = {"node_modules", "__pycache__", ".git", ".venv", "venv", "dist", "build"}
     for root, dirs, files in os.walk(root_dir):
         dirs[:] = [d for d in dirs if d not in skip_dirs and not d.startswith(".")]
         for fname in files:
             if Path(fname).suffix.lower() in extensions:
-                client.open_file(os.path.join(root, fname), lang)  # type: ignore[attr-defined]
+                client.open_file(os.path.join(root, fname), language_id)  # type: ignore[attr-defined]
 
 
 def lsp_references(symbol: str, path: str, root_dir: str) -> str:
     """Semantic references via LSP. Falls back to regex if LSP unavailable."""
-    from .lsp.bridge import find_symbol_line, lang_id, lang_key
+    from .lsp.bridge import find_symbol_line, lsp_language_id, lsp_language_key
     from .lsp.manager import get_server
     from .lsp.client import uri_to_path
 
@@ -88,13 +88,13 @@ def lsp_references(symbol: str, path: str, root_dir: str) -> str:
     if pos is None:
         return find_references(symbol, root_dir)
 
-    lk = lang_key(path)
-    client = get_server(lk, root_dir)
+    language_key = lsp_language_key(path)
+    client = get_server(language_key, root_dir)
     if client is None:
         return find_references(symbol, root_dir)
 
-    exts = PY_EXTENSIONS if lk == "python" else TS_EXTENSIONS
-    _open_workspace_files(client, root_dir, exts, lang_id(path))
+    workspace_extensions = PY_EXTENSIONS if language_key == "python" else TS_EXTENSIONS
+    _open_workspace_files(client, root_dir, workspace_extensions, lsp_language_id(path))
     refs = client.references(path, pos[0], pos[1])
 
     if not refs:
@@ -114,7 +114,7 @@ def lsp_references(symbol: str, path: str, root_dir: str) -> str:
 
 def lsp_hover(path: str, symbol: str, root_dir: str | None = None) -> str:
     """Type signature and docs for a symbol via LSP."""
-    from .lsp.bridge import find_symbol_line, lang_id, lang_key
+    from .lsp.bridge import find_symbol_line, lsp_language_id, lsp_language_key
     from .lsp.manager import get_server
 
     pos = find_symbol_line(path, symbol)
@@ -122,12 +122,13 @@ def lsp_hover(path: str, symbol: str, root_dir: str | None = None) -> str:
         return f"Symbol '{symbol}' not found in {path}"
 
     effective_root = root_dir or str(Path(path).parent)
-    client = get_server(lang_key(path), effective_root)
+    language_key = lsp_language_key(path)
+    client = get_server(language_key, effective_root)
     if client is None:
-        lsp_name = "pylsp" if lang_key(path) == "python" else "typescript-language-server"
-        return f"LSP unavailable. Install: {lsp_name}"
+        lsp_server_name = "pylsp" if language_key == "python" else "typescript-language-server"
+        return f"LSP unavailable. Install: {lsp_server_name}"
 
-    client.open_file(path, lang_id(path))
+    client.open_file(path, lsp_language_id(path))
     result = client.hover(path, pos[0], pos[1])
 
     if not result:
