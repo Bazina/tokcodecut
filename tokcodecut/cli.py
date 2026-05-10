@@ -30,9 +30,19 @@ def main() -> None:
     p = sub.add_parser("imports", help="Import block only")
     p.add_argument("path")
 
-    p = sub.add_parser("refs", help="Cross-file references to symbol")
+    p = sub.add_parser("refs", help="Cross-file references to symbol (regex)")
     p.add_argument("symbol")
     p.add_argument("root_dir")
+
+    p = sub.add_parser("lsp-refs", help="Semantic cross-file references via LSP (falls back to regex)")
+    p.add_argument("symbol")
+    p.add_argument("path", help="File where symbol is defined")
+    p.add_argument("root_dir")
+
+    p = sub.add_parser("lsp-hover", help="Type signature and docs via LSP")
+    p.add_argument("path")
+    p.add_argument("symbol")
+    p.add_argument("--root-dir", default="", help="Workspace root (defaults to file's parent)")
 
     args = parser.parse_args()
 
@@ -46,6 +56,10 @@ def main() -> None:
         print(dispatcher.imports(args.path))
     elif args.command == "refs":
         print(dispatcher.find_references(args.symbol, args.root_dir))
+    elif args.command == "lsp-refs":
+        print(dispatcher.lsp_references(args.symbol, args.path, args.root_dir))
+    elif args.command == "lsp-hover":
+        print(dispatcher.lsp_hover(args.path, args.symbol, args.root_dir or None))
 
 
 if __name__ == "__main__":
