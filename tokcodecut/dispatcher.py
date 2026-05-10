@@ -18,20 +18,39 @@ def _route(path: str):
     return None
 
 
+def _try_lsp_first(path: str) -> bool:
+    return _route(path) in (python_parser, ts_parser)
+
+
 def structure(path: str) -> str:
     """Flat symbol name list. Cheapest orientation tool."""
+    if _try_lsp_first(path):
+        from .lsp.lsp_parser import structure as lsp_structure
+        result = lsp_structure(path)
+        if result:
+            return result
     parser = _route(path)
     return parser.structure(path) if parser else err_unsupported(path)
 
 
 def skeleton(path: str) -> str:
     """All signatures + first docstring. No bodies."""
+    if _try_lsp_first(path):
+        from .lsp.lsp_parser import skeleton as lsp_skeleton
+        result = lsp_skeleton(path)
+        if result:
+            return result
     parser = _route(path)
     return parser.skeleton(path) if parser else err_unsupported(path)
 
 
 def symbol_body(path: str, name: str) -> str:
     """Full source of one named symbol."""
+    if _try_lsp_first(path):
+        from .lsp.lsp_parser import symbol_body as lsp_symbol_body
+        result = lsp_symbol_body(path, name)
+        if result:
+            return result
     parser = _route(path)
     return parser.symbol_body(path, name) if parser else err_unsupported(path)
 

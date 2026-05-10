@@ -130,6 +130,11 @@ class LspClient:
             "textDocument": {"uri": uri, "languageId": lang_id, "version": 1, "text": text}
         })
 
+    def document_symbols(self, path: str) -> list[dict] | None:
+        return self.request("textDocument/documentSymbol", {  # type: ignore[return-value]
+            "textDocument": {"uri": path_to_uri(path)},
+        })
+
     def references(self, path: str, line: int, char: int) -> list[dict] | None:
         return self.request("textDocument/references", {  # type: ignore[return-value]
             "textDocument": {"uri": path_to_uri(path)},
